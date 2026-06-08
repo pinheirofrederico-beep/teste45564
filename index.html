@@ -2,135 +2,114 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Jogo de Tiro 3D</title>
+  <title>Cidade 3D com Carro e M4</title>
   <style>
     body { margin: 0; overflow: hidden; }
     canvas { display: block; }
   </style>
 </head>
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-  <script>
-    // Cena, câmera e renderizador
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-    // Chão
-    const floorGeometry = new THREE.PlaneGeometry(200, 200);
-    const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
+  // Chão (ruas)
+  const floorGeometry = new THREE.PlaneGeometry(500, 500);
+  const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
 
-    // Função para criar casas
-    function createHouse(x, z) {
-      const walls = new THREE.BoxGeometry(6, 4, 6);
-      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
-      const house = new THREE.Mesh(walls, wallMaterial);
-      house.position.set(x, 2, z);
+  // Função para criar casas
+  function createHouse(x, z) {
+    const walls = new THREE.BoxGeometry(10, 6, 10);
+    const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
+    const house = new THREE.Mesh(walls, wallMaterial);
+    house.position.set(x, 3, z);
 
-      const roof = new THREE.ConeGeometry(5, 3, 4);
-      const roofMaterial = new THREE.MeshBasicMaterial({ color: 0x663300 });
-      const roofMesh = new THREE.Mesh(roof, roofMaterial);
-      roofMesh.position.set(x, 5, z);
+    const roof = new THREE.ConeGeometry(8, 4, 4);
+    const roofMaterial = new THREE.MeshBasicMaterial({ color: 0x663300 });
+    const roofMesh = new THREE.Mesh(roof, roofMaterial);
+    roofMesh.position.set(x, 8, z);
 
-      scene.add(house);
-      scene.add(roofMesh);
+    scene.add(house);
+    scene.add(roofMesh);
+  }
+
+  // Criar várias casas
+  for (let i = -100; i <= 100; i += 40) {
+    createHouse(i, -50);
+    createHouse(i, 50);
+  }
+
+  // Carro
+  const carGeometry = new THREE.BoxGeometry(6, 2, 3);
+  const carMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+  const car = new THREE.Mesh(carGeometry, carMaterial);
+  car.position.set(0, 1, 0);
+  scene.add(car);
+
+  // Arma M4 (simplificada como um cubo na mão)
+  const gunGeometry = new THREE.BoxGeometry(1, 0.5, 3);
+  const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  const gun = new THREE.Mesh(gunGeometry, gunMaterial);
+  gun.position.set(0.5, -0.5, -1.5);
+  camera.add(gun);
+  scene.add(camera);
+
+  // Inimigos
+  const enemies = [];
+  function createEnemy(x, z) {
+    const body = new THREE.BoxGeometry(1, 2, 1);
+    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const enemy = new THREE.Mesh(body, material);
+    enemy.position.set(x, 1, z);
+    scene.add(enemy);
+    enemies.push(enemy);
+  }
+
+  createEnemy(20, -20);
+  createEnemy(-30, 40);
+  createEnemy(50, -60);
+
+  // Controles
+  const keys = {};
+  window.addEventListener('keydown', (e) => keys[e.key] = true);
+  window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+  let yaw = 0, pitch = 0;
+  document.body.addEventListener('click', () => document.body.requestPointerLock());
+  document.addEventListener('mousemove', (e) => {
+    if (document.pointerLockElement === document.body) {
+      yaw -= e.movementX * 0.002;
+      pitch -= e.movementY * 0.002;
+      pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+      camera.rotation.set(pitch, yaw, 0);
     }
+  });
 
-    // Criar algumas casas
-    createHouse(10, -20);
-    createHouse(-15, -30);
-    createHouse(25, -40);
+  camera.position.set(0, 2, 10);
 
-    // Função para criar inimigos
-    const enemies = [];
-    function createEnemy(x, z) {
-      const body = new THREE.BoxGeometry(1, 2, 1);
-      const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const enemy = new THREE.Mesh(body, material);
-      enemy.position.set(x, 1, z);
-      scene.add(enemy);
-      enemies.push(enemy);
-    }
+  // Loop
+  function animate() {
+    requestAnimationFrame(animate);
 
-    // Criar inimigos perto das casas
-    createEnemy(10, -22);
-    createEnemy(-15, -32);
-    createEnemy(25, -42);
+    const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 
-    // Posição inicial da câmera
-    camera.position.set(0, 2, 5);
+    if (keys['w']) camera.position.add(forward.clone().multiplyScalar(0.3));
+    if (keys['s']) camera.position.add(forward.clone().multiplyScalar(-0.3));
+    if (keys['a']) camera.position.add(right.clone().multiplyScalar(-0.3));
+    if (keys['d']) camera.position.add(right.clone().multiplyScalar(0.3));
 
-    // Controle de teclas
-    const keys = {};
-    window.addEventListener('keydown', (e) => keys[e.key] = true);
-    window.addEventListener('keyup', (e) => keys[e.key] = false);
-
-    const speed = 0.2;
-
-    // Controle do mouse (Pointer Lock)
-    document.body.addEventListener('click', () => {
-      document.body.requestPointerLock();
-    });
-
-    let yaw = 0, pitch = 0;
-    document.addEventListener('mousemove', (e) => {
-      if (document.pointerLockElement === document.body) {
-        yaw -= e.movementX * 0.002;
-        pitch -= e.movementY * 0.002;
-        pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-        camera.rotation.set(pitch, yaw, 0);
-      }
-    });
-
-    // Função de tiro
-    function shoot() {
-      const bulletGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-      const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-      const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-      bullet.position.copy(camera.position);
-      scene.add(bullet);
-
-      const velocity = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).multiplyScalar(0.5);
-
-      function animateBullet() {
-        bullet.position.add(velocity);
-
-        // Checar colisão com inimigos
-        enemies.forEach((enemy, i) => {
-          if (bullet.position.distanceTo(enemy.position) < 1.5) {
-            scene.remove(enemy);
-            enemies.splice(i, 1);
-            scene.remove(bullet);
-          }
-        });
-
-        requestAnimationFrame(animateBullet);
-      }
-      animateBullet();
-    }
-
-    window.addEventListener('click', shoot);
-
-    // Loop de renderização
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-
-      if (keys['w']) camera.position.add(forward.clone().multiplyScalar(speed));
-      if (keys['s']) camera.position.add(forward.clone().multiplyScalar(-speed));
-      if (keys['a']) camera.position.add(right.clone().multiplyScalar(-speed));
-      if (keys['d']) camera.position.add(right.clone().multiplyScalar(speed));
-
-      renderer.render(scene, camera);
-    }
-    animate();
-  </script>
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
 </body>
 </html>
+
