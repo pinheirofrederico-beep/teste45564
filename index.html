@@ -24,7 +24,7 @@
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  // Função para criar casas
+  // Casas
   function createHouse(x, z) {
     const walls = new THREE.BoxGeometry(10, 6, 10);
     const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
@@ -40,7 +40,6 @@
     scene.add(roofMesh);
   }
 
-  // Criar várias casas
   for (let i = -100; i <= 100; i += 40) {
     createHouse(i, -50);
     createHouse(i, 50);
@@ -53,7 +52,9 @@
   car.position.set(0, 1, 0);
   scene.add(car);
 
-  // Arma M4 (simplificada como um cubo na mão)
+  let drivingCar = false;
+
+  // Arma M4 (simplificada)
   const gunGeometry = new THREE.BoxGeometry(1, 0.5, 3);
   const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
   const gun = new THREE.Mesh(gunGeometry, gunMaterial);
@@ -94,6 +95,39 @@
 
   camera.position.set(0, 2, 10);
 
+  // Função de tiro da M4 (rajada automática)
+  function shoot() {
+    const bulletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+    bullet.position.copy(camera.position);
+    scene.add(bullet);
+
+    const velocity = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).multiplyScalar(1);
+
+    function animateBullet() {
+      bullet.position.add(velocity);
+      enemies.forEach((enemy, i) => {
+        if (bullet.position.distanceTo(enemy.position) < 1.5) {
+          scene.remove(enemy);
+          enemies.splice(i, 1);
+          scene.remove(bullet);
+        }
+      });
+      requestAnimationFrame(animateBullet);
+    }
+    animateBullet();
+  }
+
+  window.addEventListener('mousedown', () => {
+    const interval = setInterval(() => {
+      if (!keys['mouseDown']) clearInterval(interval);
+      shoot();
+    }, 100); // rajada automática
+    keys['mouseDown'] = true;
+  });
+  window.addEventListener('mouseup', () => keys['mouseDown'] = false);
+
   // Loop
   function animate() {
     requestAnimationFrame(animate);
@@ -101,10 +135,28 @@
     const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
     const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 
-    if (keys['w']) camera.position.add(forward.clone().multiplyScalar(0.3));
-    if (keys['s']) camera.position.add(forward.clone().multiplyScalar(-0.3));
-    if (keys['a']) camera.position.add(right.clone().multiplyScalar(-0.3));
-    if (keys['d']) camera.position.add(right.clone().multiplyScalar(0.3));
+    if (drivingCar) {
+      if (keys['w']) car.position.add(forward.clone().multiplyScalar(0.5));
+      if (keys['s']) car.position.add(forward.clone().multiplyScalar(-0.5));
+      if (keys['a']) car.rotation.y += 0.05;
+      if (keys['d']) car.rotation.y -= 0.05;
+      camera.position.copy(car.position).add(new THREE.Vector3(0, 3, 10));
+      camera.lookAt(car.position);
+    } else {
+      if (keys['w']) camera.position.add(forward.clone().multiplyScalar(0.3));
+      if (keys['s']) camera.position.add(forward.clone().multiplyScalar(-0.3));
+      if (keys['a']) camera.position.add(right.clone().multiplyScalar(-0.3));
+      if (keys['d']) camera.position.add(right.clone().multiplyScalar(0.3));
+    }
+
+    // Entrar no carro com tecla "e"
+    if (keys['e'] && camera.position.distanceTo(car.position) < 5) {
+      drivingCar = true;
+    }
+    // Sair do carro com tecla "q"
+    if (keys['q']) {
+      drivingCar = false;
+    }
 
     renderer.render(scene, camera);
   }
@@ -112,4 +164,3 @@
 </script>
 </body>
 </html>
-
