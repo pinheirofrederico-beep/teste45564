@@ -17,7 +17,7 @@
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // Chão (ruas)
+  // Chão
   const floorGeometry = new THREE.PlaneGeometry(500, 500);
   const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -39,22 +39,41 @@
     scene.add(house);
     scene.add(roofMesh);
   }
-
   for (let i = -100; i <= 100; i += 40) {
     createHouse(i, -50);
     createHouse(i, 50);
   }
 
-  // Carro
-  const carGeometry = new THREE.BoxGeometry(6, 2, 3);
+  // Carro com rodas e volante
+  const carBody = new THREE.BoxGeometry(6, 2, 3);
   const carMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-  const car = new THREE.Mesh(carGeometry, carMaterial);
+  const car = new THREE.Mesh(carBody, carMaterial);
   car.position.set(0, 1, 0);
   scene.add(car);
 
+  // Rodas
+  const wheelGeometry = new THREE.CylinderGeometry(0.7, 0.7, 0.5, 16);
+  const wheelMaterial = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  const wheels = [];
+  const wheelPositions = [[2.5,0.5,1.5],[2.5,0.5,-1.5],[-2.5,0.5,1.5],[-2.5,0.5,-1.5]];
+  wheelPositions.forEach(pos=>{
+    const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+    wheel.rotation.z = Math.PI/2;
+    wheel.position.set(pos[0], pos[1], pos[2]);
+    car.add(wheel);
+    wheels.push(wheel);
+  });
+
+  // Volante
+  const steeringGeometry = new THREE.TorusGeometry(0.5,0.1,16,100);
+  const steeringMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  const steeringWheel = new THREE.Mesh(steeringGeometry, steeringMaterial);
+  steeringWheel.position.set(0,1.5,1.2);
+  car.add(steeringWheel);
+
   let drivingCar = false;
 
-  // Arma M4 (simplificada)
+  // Arma M4 simplificada
   const gunGeometry = new THREE.BoxGeometry(1, 0.5, 3);
   const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 });
   const gun = new THREE.Mesh(gunGeometry, gunMaterial);
@@ -72,7 +91,6 @@
     scene.add(enemy);
     enemies.push(enemy);
   }
-
   createEnemy(20, -20);
   createEnemy(-30, 40);
   createEnemy(50, -60);
@@ -95,7 +113,7 @@
 
   camera.position.set(0, 2, 10);
 
-  // Função de tiro da M4 (rajada automática)
+  // Tiro da M4
   function shoot() {
     const bulletGeometry = new THREE.SphereGeometry(0.1, 8, 8);
     const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
@@ -123,7 +141,7 @@
     const interval = setInterval(() => {
       if (!keys['mouseDown']) clearInterval(interval);
       shoot();
-    }, 100); // rajada automática
+    }, 100);
     keys['mouseDown'] = true;
   });
   window.addEventListener('mouseup', () => keys['mouseDown'] = false);
@@ -136,10 +154,22 @@
     const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 
     if (drivingCar) {
-      if (keys['w']) car.position.add(forward.clone().multiplyScalar(0.5));
-      if (keys['s']) car.position.add(forward.clone().multiplyScalar(-0.5));
-      if (keys['a']) car.rotation.y += 0.05;
-      if (keys['d']) car.rotation.y -= 0.05;
+      if (keys['w']) {
+        car.position.add(forward.clone().multiplyScalar(0.5));
+        wheels.forEach(w=>w.rotation.x -= 0.1); // roda gira
+      }
+      if (keys['s']) {
+        car.position.add(forward.clone().multiplyScalar(-0.5));
+        wheels.forEach(w=>w.rotation.x += 0.1);
+      }
+      if (keys['a']) {
+        car.rotation.y += 0.05;
+        steeringWheel.rotation.z += 0.05; // volante gira
+      }
+      if (keys['d']) {
+        car.rotation.y -= 0.05;
+        steeringWheel.rotation.z -= 0.05;
+      }
       camera.position.copy(car.position).add(new THREE.Vector3(0, 3, 10));
       camera.lookAt(car.position);
     } else {
@@ -149,11 +179,11 @@
       if (keys['d']) camera.position.add(right.clone().multiplyScalar(0.3));
     }
 
-    // Entrar no carro com tecla "e"
+    // Entrar no carro com "e"
     if (keys['e'] && camera.position.distanceTo(car.position) < 5) {
       drivingCar = true;
     }
-    // Sair do carro com tecla "q"
+    // Sair do carro com "q"
     if (keys['q']) {
       drivingCar = false;
     }
