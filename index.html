@@ -35,6 +35,29 @@
     // Posição inicial da câmera
     camera.position.set(0, 2, 5);
 
+    // Controle de teclas
+    const keys = {};
+    window.addEventListener('keydown', (e) => keys[e.key] = true);
+    window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+    // Movimento do jogador
+    const speed = 0.2;
+
+    // Controle do mouse (Pointer Lock)
+    document.body.addEventListener('click', () => {
+      document.body.requestPointerLock();
+    });
+
+    let yaw = 0, pitch = 0;
+    document.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement === document.body) {
+        yaw -= e.movementX * 0.002;
+        pitch -= e.movementY * 0.002;
+        pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+        camera.rotation.set(pitch, yaw, 0);
+      }
+    });
+
     // Função de tiro
     function shoot() {
       const bulletGeometry = new THREE.SphereGeometry(0.2, 16, 16);
@@ -57,12 +80,21 @@
       animateBullet();
     }
 
-    // Evento de clique para atirar
     window.addEventListener('click', shoot);
 
     // Loop de renderização
     function animate() {
       requestAnimationFrame(animate);
+
+      // Movimento WASD
+      const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+
+      if (keys['w']) camera.position.add(forward.clone().multiplyScalar(speed));
+      if (keys['s']) camera.position.add(forward.clone().multiplyScalar(-speed));
+      if (keys['a']) camera.position.add(right.clone().multiplyScalar(-speed));
+      if (keys['d']) camera.position.add(right.clone().multiplyScalar(speed));
+
       renderer.render(scene, camera);
     }
     animate();
