@@ -1,0 +1,44 @@
+using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    public float moveSpeed = 5f;
+    public float mouseSensitivity = 2f;
+    public Camera playerCamera;
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+    public float bulletSpeed = 20f;
+
+    private float verticalRotation = 0f;
+
+    void Update()
+    {
+        // Movimento do jogador
+        float moveForward = Input.GetAxis("Vertical") * moveSpeed;
+        float moveSide = Input.GetAxis("Horizontal") * moveSpeed;
+        Vector3 move = new Vector3(moveSide, 0, moveForward);
+        move = transform.rotation * move;
+        transform.position += move * Time.deltaTime;
+
+        // Rotação da câmera
+        float rotX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        transform.Rotate(0, rotX, 0);
+
+        verticalRotation -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+        verticalRotation = Mathf.Clamp(verticalRotation, -60, 60);
+        playerCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+
+        // Disparo
+        if (Input.GetMouseButtonDown(0))
+        {
+            Shoot();
+        }
+    }
+
+    void Shoot()
+    {
+        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        rb.velocity = firePoint.forward * bulletSpeed;
+    }
+}
